@@ -1,0 +1,426 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Переводчик</title>
+
+<script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.18.2/dist/index.js"></script>
+
+</head>
+<body>
+
+<p><b>С какого:</b></p>
+<select id="selectFromLang">
+  <option value="en">Английский</option>
+  <option value="ru">Русский</option>
+  <option value="es">Испанский</option>
+  <option value="it">Итальянский</option>
+  <option value="fr">Французский</option>
+  <option value="de">Немецкий</option>
+  <option value="pt">Португальский</option>
+  <option value="ar">Арабский</option>
+  <option value="hy">Армянский</option>
+  <option value="az">Азербайджанский</option>
+  <option value="zh">Китайский</option>
+  <option value="pinyin">Пиньинь</option>
+</select>
+
+<p><b>На какой:</b></p>
+<select id="selectToLang">
+  <option value="ru">Русский</option>
+  <option value="en">Английский</option>
+  <option value="es">Испанский</option>
+  <option value="it">Итальянский</option>
+  <option value="fr">Французский</option>
+  <option value="de">Немецкий</option>
+  <option value="pt">Португальский</option>
+  <option value="ar">Арабский</option>
+  <option value="hy">Армянский</option>
+  <option value="az">Азербайджанский</option>
+  <option value="zh">Китайский</option>
+  <option value="pinyin">Пиньинь</option>
+</select>
+
+<p>Введите слово или фразу:</p>
+
+<input type="text" id="inputWord" style="width:200px;">
+
+
+<div style="margin-top:8px;">
+
+  <p><b>Французский:</b></p>
+  <button onclick="addChar('é')">é</button>
+  <button onclick="addChar('è')">è</button>
+  <button onclick="addChar('ê')">ê</button>
+  <button onclick="addChar('ë')">ë</button>
+  <button onclick="addChar('à')">à</button>
+  <button onclick="addChar('â')">â</button>
+  <button onclick="addChar('ç')">ç</button>
+  <button onclick="addChar('î')">î</button>
+  <button onclick="addChar('ï')">ï</button>
+  <button onclick="addChar('ô')">ô</button>
+  <button onclick="addChar('ù')">ù</button>
+  <button onclick="addChar('û')">û</button>
+  <button onclick="addChar('œ')">œ</button>
+
+  <p><b>Немецкий:</b></p>
+  <button onclick="addChar('ä')">ä</button>
+  <button onclick="addChar('ö')">ö</button>
+  <button onclick="addChar('ü')">ü</button>
+  <button onclick="addChar('ß')">ß</button>
+
+  <p><b>Пиньинь — 1-й тон:</b></p>
+  <button onclick="addChar('ā')">ā</button>
+  <button onclick="addChar('ē')">ē</button>
+  <button onclick="addChar('ī')">ī</button>
+  <button onclick="addChar('ō')">ō</button>
+  <button onclick="addChar('ū')">ū</button>
+  <button onclick="addChar('ǖ')">ǖ</button>
+
+  <p><b>Пиньинь — 2-й тон:</b></p>
+  <button onclick="addChar('á')">á</button>
+  <button onclick="addChar('é')">é</button>
+  <button onclick="addChar('í')">í</button>
+  <button onclick="addChar('ó')">ó</button>
+  <button onclick="addChar('ú')">ú</button>
+  <button onclick="addChar('ǘ')">ǘ</button>
+
+  <p><b>Пиньинь — 3-й тон:</b></p>
+  <button onclick="addChar('ǎ')">ǎ</button>
+  <button onclick="addChar('ě')">ě</button>
+  <button onclick="addChar('ǐ')">ǐ</button>
+  <button onclick="addChar('ǒ')">ǒ</button>
+  <button onclick="addChar('ǔ')">ǔ</button>
+  <button onclick="addChar('ǚ')">ǚ</button>
+
+  <p><b>Пиньинь — 4-й тон:</b></p>
+  <button onclick="addChar('à')">à</button>
+  <button onclick="addChar('è')">è</button>
+  <button onclick="addChar('ì')">ì</button>
+  <button onclick="addChar('ò')">ò</button>
+  <button onclick="addChar('ù')">ù</button>
+  <button onclick="addChar('ǜ')">ǜ</button>
+
+</div>
+
+
+<p>
+<button id="translateBtn">Перевести</button>
+</p>
+
+<p><b>Китайские иероглифы:</b></p>
+<div id="chineseResult">—</div>
+
+<p><b>Перевод:</b></p>
+<div id="transResult">—</div>
+
+<script>
+
+var input, btn, selectFrom, selectTo;
+var resultBox, chineseBox;
+
+// Добавление специальных символов
+function addChar(ch) {
+  input.value += ch;
+  input.focus();
+}
+
+// Обычный перевод через Google Translate
+function translateWord(word, fromLang, toLang, callback) {
+
+  var xhr = new XMLHttpRequest();
+
+  var url =
+    "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" +
+    fromLang + "&tl=" + toLang + "&dt=t&q=" +
+    encodeURIComponent(word);
+
+  xhr.open("GET", url, true);
+
+  xhr.onreadystatechange = function() {
+
+    if (xhr.readyState === 4) {
+
+      if (xhr.status === 200) {
+
+        try {
+
+          var data = JSON.parse(xhr.responseText);
+          var text = "";
+
+          if (data && data[0]) {
+
+            for (var i = 0; i < data[0].length; i++) {
+
+              if (data[0][i] && data[0][i][0]) {
+                text += data[0][i][0];
+              }
+
+            }
+
+          }
+
+          callback(text || "Перевод не найден");
+
+        } catch(e) {
+          callback("Ошибка перевода");
+        }
+
+      } else {
+        callback("Ошибка " + xhr.status);
+      }
+
+    }
+
+  };
+
+  xhr.onerror = function() {
+    callback("Ошибка соединения");
+  };
+
+  xhr.send();
+}
+
+
+// Убираем тоны и подготавливаем пиньинь
+function normalizePinyin(text) {
+
+  return text
+    .toLowerCase()
+    .replace(/[üǖǘǚǜ]/g, "v")
+    .replace(/u:/g, "v")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[1-5]/g, "")
+    .replace(/[^a-zv]/g, "");
+}
+
+
+// Пиньинь -> китайские иероглифы
+function pinyinToChinese(text, callback) {
+
+  var pinyin = normalizePinyin(text);
+
+  if (!pinyin) {
+    callback("Введите правильный пиньинь");
+    return;
+  }
+
+  var xhr = new XMLHttpRequest();
+
+  var url =
+    "https://inputtools.google.com/request?text=" +
+    encodeURIComponent(pinyin) +
+    "&itc=zh-t-i0-pinyin" +
+    "&num=5&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage";
+
+  xhr.open("GET", url, true);
+
+  xhr.onreadystatechange = function() {
+
+    if (xhr.readyState === 4) {
+
+      if (xhr.status === 200) {
+
+        try {
+
+          var data = JSON.parse(xhr.responseText);
+
+          if (
+            data &&
+            data[0] === "SUCCESS" &&
+            data[1] &&
+            data[1][0] &&
+            data[1][0][1] &&
+            data[1][0][1][0]
+          ) {
+
+            callback(data[1][0][1][0]);
+
+          } else {
+
+            callback("Не удалось распознать пиньинь");
+
+          }
+
+        } catch(e) {
+
+          callback("Ошибка распознавания");
+
+        }
+
+      } else {
+
+        callback("Ошибка " + xhr.status);
+
+      }
+
+    }
+
+  };
+
+  xhr.onerror = function() {
+    callback("Ошибка соединения с Google Input Tools");
+  };
+
+  xhr.send();
+}
+
+
+// Китайские иероглифы -> пиньинь
+function toPinyin(text) {
+
+  try {
+
+    if (!window.pinyinPro) {
+      return "Библиотека пиньиня не загрузилась";
+    }
+
+    return window.pinyinPro.pinyin(text, {
+      toneType: "symbol",
+      type: "string"
+    });
+
+  } catch(e) {
+
+    return "Ошибка преобразования";
+
+  }
+
+}
+
+
+// Перевод китайского текста на выбранный язык
+function translateChinese(chinese, targetLang) {
+
+  chineseBox.textContent = chinese;
+
+  if (targetLang === "zh") {
+    resultBox.textContent = chinese;
+    return;
+  }
+
+  if (targetLang === "pinyin") {
+    resultBox.textContent = toPinyin(chinese);
+    return;
+  }
+
+  translateWord(chinese, "zh-CN", targetLang, function(res) {
+    resultBox.textContent = res;
+  });
+
+}
+
+
+// Основная функция
+function translateMain() {
+
+  var word = input.value.trim();
+
+  var fromLang = selectFrom.value;
+  var toLang = selectTo.value;
+
+  if (!word) {
+    chineseBox.textContent = "—";
+    resultBox.textContent = "Введите слово";
+    return;
+  }
+
+  chineseBox.textContent = "—";
+  resultBox.textContent = "Загрузка...";
+
+
+  // ПИНЬИНЬ -> ДРУГОЙ ЯЗЫК
+  if (fromLang === "pinyin") {
+
+    chineseBox.textContent = "Распознавание пиньиня...";
+
+    pinyinToChinese(word, function(chinese) {
+
+      if (
+        chinese.indexOf("Ошибка") === 0 ||
+        chinese.indexOf("Не удалось") === 0 ||
+        chinese.indexOf("Введите") === 0
+      ) {
+
+        chineseBox.textContent = chinese;
+        resultBox.textContent = "—";
+        return;
+
+      }
+
+      translateChinese(chinese, toLang);
+
+    });
+
+    return;
+  }
+
+
+  // ДРУГОЙ ЯЗЫК -> ПИНЬИНЬ ИЛИ КИТАЙСКИЙ
+  if (toLang === "pinyin" || toLang === "zh") {
+
+    if (fromLang === "zh") {
+
+      translateChinese(word, toLang);
+      return;
+
+    }
+
+    translateWord(word, fromLang, "zh-CN", function(chinese) {
+
+      if (!chinese || chinese.indexOf("Ошибка") === 0) {
+        resultBox.textContent = chinese;
+        return;
+      }
+
+      translateChinese(chinese, toLang);
+
+    });
+
+    return;
+  }
+
+
+  // ОБЫЧНЫЙ ПЕРЕВОД
+  translateWord(word, fromLang, toLang, function(res) {
+
+    resultBox.textContent = res;
+
+  });
+
+}
+
+
+// Запуск
+window.onload = function() {
+
+  input = document.getElementById("inputWord");
+  btn = document.getElementById("translateBtn");
+
+  selectFrom = document.getElementById("selectFromLang");
+  selectTo = document.getElementById("selectToLang");
+
+  resultBox = document.getElementById("transResult");
+  chineseBox = document.getElementById("chineseResult");
+
+  btn.onclick = translateMain;
+
+  input.onkeypress = function(e) {
+
+    e = e || window.event;
+
+    if (e.keyCode === 13) {
+      translateMain();
+    }
+
+  };
+
+};
+
+</script>
+
+</body>
+</html>
