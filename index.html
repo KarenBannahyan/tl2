@@ -47,8 +47,6 @@
 
 <input type="text" id="inputWord" style="width:200px;">
 
-<!-- Специальные символы -->
-
 <div style="margin-top:8px;">
 
   <p><b>Французский:</b></p>
@@ -146,6 +144,7 @@ function translateWord(word, fromLang, toLang, callback) {
     encodeURIComponent(word);
 
   xhr.open("GET", url, true);
+  xhr.timeout = 15000;
 
   xhr.onreadystatechange = function() {
 
@@ -173,15 +172,11 @@ function translateWord(word, fromLang, toLang, callback) {
           callback(text || "Перевод не найден");
 
         } catch(e) {
-
-          callback("Ошибка перевода");
-
+          callback("Ошибка обработки перевода");
         }
 
       } else {
-
-        callback("Ошибка " + xhr.status);
-
+        callback("Ошибка сервера: " + xhr.status);
       }
 
     }
@@ -192,23 +187,42 @@ function translateWord(word, fromLang, toLang, callback) {
     callback("Ошибка соединения");
   };
 
+  xhr.ontimeout = function() {
+    callback("Время ожидания истекло");
+  };
+
   xhr.send();
 
 }
 
 
-// Нормализация пиньиня
+// Пиньинь без тоновых знаков
 
 function normalizePinyin(text) {
 
-  return text
-    .toLowerCase()
-    .replace(/[üǖǘǚǜ]/g, "v")
-    .replace(/u:/g, "v")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[1-5]/g, "")
-    .replace(/[^a-zv]/g, "");
+  var map = {
+    "ā":"a", "á":"a", "ǎ":"a", "à":"a",
+    "ē":"e", "é":"e", "ě":"e", "è":"e",
+    "ī":"i", "í":"i", "ǐ":"i", "ì":"i",
+    "ō":"o", "ó":"o", "ǒ":"o", "ò":"o",
+    "ū":"u", "ú":"u", "ǔ":"u", "ù":"u",
+    "ǖ":"v", "ǘ":"v", "ǚ":"v", "ǜ":"v",
+    "ü":"v"
+  };
+
+  text = text.toLowerCase();
+
+  var result = "";
+
+  for (var i = 0; i < text.length; i++) {
+
+    var ch = text.charAt(i);
+
+    result += map[ch] || ch;
+
+  }
+
+  return result.replace(/[^a-zv]/g, "");
 
 }
 
@@ -233,6 +247,7 @@ function pinyinToChinese(text, callback) {
     "&num=5&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage";
 
   xhr.open("GET", url, true);
+  xhr.timeout = 15000;
 
   xhr.onreadystatechange = function() {
 
@@ -250,7 +265,7 @@ function pinyinToChinese(text, callback) {
             data[1] &&
             data[1][0] &&
             data[1][0][1] &&
-            data[1][0][1][0]
+            data[1][0][1].length > 0
           ) {
 
             callback(data[1][0][1][0]);
@@ -269,7 +284,7 @@ function pinyinToChinese(text, callback) {
 
       } else {
 
-        callback("Ошибка " + xhr.status);
+        callback("Ошибка сервера: " + xhr.status);
 
       }
 
@@ -278,7 +293,11 @@ function pinyinToChinese(text, callback) {
   };
 
   xhr.onerror = function() {
-    callback("Ошибка соединения");
+    callback("Ошибка соединения с Google Input Tools");
+  };
+
+  xhr.ontimeout = function() {
+    callback("Google Input Tools не отвечает");
   };
 
   xhr.send();
@@ -287,7 +306,6 @@ function pinyinToChinese(text, callback) {
 
 
 // Китайские иероглифы -> Пиньинь
-// Используем Google Translate, чтобы не загружать библиотеку
 
 function chineseToPinyin(text, callback) {
 
@@ -298,6 +316,7 @@ function chineseToPinyin(text, callback) {
     encodeURIComponent(text);
 
   xhr.open("GET", url, true);
+  xhr.timeout = 15000;
 
   xhr.onreadystatechange = function() {
 
@@ -327,7 +346,7 @@ function chineseToPinyin(text, callback) {
 
       } else {
 
-        callback("Ошибка " + xhr.status);
+        callback("Ошибка сервера: " + xhr.status);
 
       }
 
@@ -339,12 +358,16 @@ function chineseToPinyin(text, callback) {
     callback("Ошибка соединения");
   };
 
+  xhr.ontimeout = function() {
+    callback("Время ожидания истекло");
+  };
+
   xhr.send();
 
 }
 
 
-// Перевод китайского текста
+// Китайский -> выбранный язык
 
 function translateChinese(chinese, targetLang) {
 
@@ -375,26 +398,31 @@ function translateChinese(chinese, targetLang) {
 
 function translateMain() {
 
-  var word = input.value.trim();
+  var word = input.value;
+
+  word = word.replace(/^\s+|\s+$/g, "");
 
   var fromLang = selectFrom.value;
   var toLang = selectTo.value;
 
   if (!word) {
+
     chineseBox.textContent = "—";
     resultBox.textContent = "Введите слово";
+
     return;
+
   }
 
   chineseBox.textContent = "—";
   resultBox.textContent = "Загрузка...";
 
 
-  // ПИНЬИНЬ -> ДРУГОЙ ЯЗЫК
+  // ПИНЬИНЬ -> ЛЮБОЙ ЯЗЫК
 
   if (fromLang === "pinyin") {
 
-    chineseBox.textContent = "Распознавание пиньиня...";
+    chineseBox.textContent = "Распознавание...";
 
     pinyinToChinese(word, function(chinese) {
 
@@ -405,7 +433,8 @@ function translateMain() {
       ) {
 
         chineseBox.textContent = chinese;
-        resultBox.textContent = "—";
+        resultBox.textContent = "Перевод не выполнен";
+
         return;
 
       }
@@ -419,22 +448,26 @@ function translateMain() {
   }
 
 
-  // ДРУГОЙ ЯЗЫК -> ПИНЬИНЬ ИЛИ КИТАЙСКИЙ
+  // ЛЮБОЙ ЯЗЫК -> КИТАЙСКИЙ ИЛИ ПИНЬИНЬ
 
   if (toLang === "pinyin" || toLang === "zh") {
 
     if (fromLang === "zh") {
 
       translateChinese(word, toLang);
+
       return;
 
     }
 
     translateWord(word, fromLang, "zh-CN", function(chinese) {
 
-      if (!chinese || chinese.indexOf("Ошибка") === 0) {
+      if (
+        !chinese ||
+        chinese.indexOf("Ошибка") === 0
+      ) {
 
-        resultBox.textContent = chinese;
+        resultBox.textContent = chinese || "Ошибка перевода";
         return;
 
       }
@@ -464,12 +497,15 @@ function translateMain() {
 window.onload = function() {
 
   input = document.getElementById("inputWord");
+
   btn = document.getElementById("translateBtn");
 
   selectFrom = document.getElementById("selectFromLang");
+
   selectTo = document.getElementById("selectToLang");
 
   resultBox = document.getElementById("transResult");
+
   chineseBox = document.getElementById("chineseResult");
 
   btn.onclick = translateMain;
